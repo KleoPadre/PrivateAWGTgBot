@@ -72,6 +72,47 @@ async def delete_config_from_db(config_id: int, config_name: str):
         return False
 
 
+async def cleanup_empty_users():
+    """Удалить пользователей без конфигураций"""
+    try:
+        from src.database.repository import UserRepository
+        
+        # Получаем всех пользователей
+        users = await UserRepository.get_all_users()
+        
+        deleted = 0
+        for user in users:
+            # Проверяем, есть ли у пользователя конфигурации
+            async with aiosqlite.connect(db.db_path) as conn:
+                cursor = await conn.execute(
+                    "SELECT COUNT(*) FROM configs WHERE user_id = ?",
+                    (user['id'],)
+                )
+                count = await cursor.fetchone()
+                
+                if count[0] == 0:
+                    # У пользователя нет конфигов, удаляем
+                    username = user.get('username') or user.get('first_name') or f"ID:{user['telegram_id']}"
+                    
+                    # Удаляем историю запросов
+                    await conn.execute("DELETE FROM requests WHERE user_id = ?", (user['id'],))
+                    # Удаляем пользователя
+                    await conn.execute("DELETE FROM users WHERE id = ?", (user['id'],))
+                    await conn.commit()
+                    
+                    logger.info(f"🗑️  Удален пустой пользователь: {username}")
+                    deleted += 1
+        
+        if deleted > 0:
+            logger.info(f"✅ Очищено {deleted} пользователей без конфигов")
+        
+        return deleted
+        
+    except Exception as e:
+        logger.error(f"Ошибка очистки пустых пользователей: {e}")
+        return 0
+
+
 async def restore_peer(config):
     """Восстановить peer на сервере"""
     try:
@@ -141,13 +182,16 @@ async def smart_sync():
                     restored += 1
                 await asyncio.sleep(0.5)
     
+    # Очистка пользователей без конфигов
+    empty_users = await cleanup_empty_users()
+    
     # Итоги
-    if restored > 0 or deleted > 0:
-        logger.info(f"📊 Итого: восстановлено {restored}, удалено из базы {deleted}")
+    if restored > 0 or deleted > 0 or empty_users > 0:
+        logger.info(f"📊 Итого: восстановлено {restored}, удалено конфигов {deleted}, удалено пустых пользователей {empty_users}")
     else:
         logger.info("✅ Все peer'ы синхронизированы, действий не требуется")
     
-    return restored, deleted
+    return restored, deleted, empty_users
 
 
 async def watch_mode():
