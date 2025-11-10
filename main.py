@@ -3,7 +3,7 @@
 """
 import asyncio
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters
 
 from src.config.settings import settings
 from src.database.models import db
@@ -11,7 +11,8 @@ from src.bot.handlers.start import start_command
 from src.bot.handlers.config import handle_phone_config, handle_laptop_config, handle_router_config
 from src.bot.handlers.admin import (
     stats_command, users_command, reboot_command,
-    handle_stats, handle_users, handle_reboot_server
+    handle_stats, handle_users, handle_reboot_server,
+    handle_reboot_confirm, handle_reboot_cancel
 )
 from src.bot.filters import authorized_users_filter, admin_filter
 from src.utils.logger import logger
@@ -114,6 +115,10 @@ def main() -> None:
             handle_reboot_server
         )
     )
+    
+    # Регистрируем обработчики callback query (для inline кнопок)
+    application.add_handler(CallbackQueryHandler(handle_reboot_confirm, pattern="^reboot_confirm$"))
+    application.add_handler(CallbackQueryHandler(handle_reboot_cancel, pattern="^reboot_cancel$"))
     
     # Регистрируем обработчик ошибок
     application.add_error_handler(error_handler)

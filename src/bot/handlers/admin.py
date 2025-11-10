@@ -2,7 +2,7 @@
 Обработчики админ-команд
 """
 import asyncio
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from datetime import datetime
 
@@ -154,39 +154,71 @@ async def users_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 @log_action("admin_reboot_server")
 async def handle_reboot_server(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
-    Обработчик запроса на перезагрузку сервера
+    Обработчик запроса на перезагрузку сервера (показывает подтверждение)
     
     Args:
         update: Объект обновления
         context: Контекст бота
     """
     try:
-        # Отправляем предупреждение
-        warning_message = await update.message.reply_text(
-            "⚠️ <b>ВНИМАНИЕ!</b>\n\n"
+        # Создаем inline keyboard для подтверждения
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ Да, перезагрузить", callback_data="reboot_confirm"),
+                InlineKeyboardButton("❌ Отмена", callback_data="reboot_cancel")
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        # Отправляем предупреждение с кнопками
+        await update.message.reply_text(
+            "⚠️ <b>ПОДТВЕРЖДЕНИЕ ПЕРЕЗАГРУЗКИ</b>\n\n"
             "Вы запросили перезагрузку сервера.\n\n"
             "🔴 Это приведет к:\n"
             "• Остановке всех сервисов\n"
             "• Перезагрузке Ubuntu сервера\n"
             "• Временной недоступности бота (~1-2 минуты)\n\n"
             "✅ Бот автоматически запустится после перезагрузки.\n\n"
-            "⏳ Перезагрузка начнется через 5 секунд...",
-            parse_mode='HTML'
+            "❓ Вы уверены?",
+            parse_mode='HTML',
+            reply_markup=reply_markup
         )
         
-        logger.warning(f"Администратор {update.effective_user.id} запросил перезагрузку сервера")
+        logger.info(f"Администратор {update.effective_user.id} запросил подтверждение перезагрузки")
         
-        # Ждем 5 секунд
-        await asyncio.sleep(5)
-        
-        # Отправляем финальное сообщение
+    except Exception as e:
+        logger.error(f"Ошибка при запросе подтверждения перезагрузки: {e}", exc_info=True)
         await update.message.reply_text(
-            "🔄 <b>Перезагружаю сервер...</b>\n\n"
+            "❌ Ошибка при обработке запроса.\n"
+            "Проверьте логи для подробностей."
+        )
+
+
+@admin_only
+async def handle_reboot_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработчик подтверждения перезагрузки
+    
+    Args:
+        update: Объект обновления
+        context: Контекст бота
+    """
+    query = update.callback_query
+    await query.answer()
+    
+    try:
+        # Обновляем сообщение
+        await query.edit_message_text(
+            "🔄 <b>Перезагрузка подтверждена!</b>\n\n"
+            "⏳ Перезагрузка начнется через 3 секунды...\n"
             "До встречи через минуту! 👋",
             parse_mode='HTML'
         )
         
-        logger.critical("Выполняется перезагрузка сервера по запросу администратора")
+        logger.critical(f"Администратор {update.effective_user.id} подтвердил перезагрузку сервера")
+        
+        # Ждем 3 секунды
+        await asyncio.sleep(3)
         
         # Выполняем перезагрузку
         process = await asyncio.create_subprocess_shell(
@@ -199,10 +231,35 @@ async def handle_reboot_server(update: Update, context: ContextTypes.DEFAULT_TYP
         
     except Exception as e:
         logger.error(f"Ошибка при перезагрузке сервера: {e}", exc_info=True)
-        await update.message.reply_text(
+        await query.message.reply_text(
             "❌ Ошибка при попытке перезагрузки сервера.\n"
             "Проверьте логи для подробностей."
         )
+
+
+@admin_only
+async def handle_reboot_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработчик отмены перезагрузки
+    
+    Args:
+        update: Объект обновления
+        context: Контекст бота
+    """
+    query = update.callback_query
+    await query.answer()
+    
+    try:
+        await query.edit_message_text(
+            "✅ <b>Перезагрузка отменена</b>\n\n"
+            "Сервер продолжает работать в штатном режиме.",
+            parse_mode='HTML'
+        )
+        
+        logger.info(f"Администратор {update.effective_user.id} отменил перезагрузку сервера")
+        
+    except Exception as e:
+        logger.error(f"Ошибка при отмене перезагрузки: {e}", exc_info=True)
 
 
 @admin_only

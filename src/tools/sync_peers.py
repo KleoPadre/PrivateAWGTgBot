@@ -9,8 +9,8 @@ import subprocess
 from pathlib import Path
 import sys
 
-# Добавляем путь к модулям бота
-sys.path.insert(0, '/opt/AmneziaBot')
+# Добавляем корень проекта в путь
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.database.repository import ConfigRepository
 from src.services.awg_manager import awg_manager

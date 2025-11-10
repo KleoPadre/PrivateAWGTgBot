@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
 Скрипт для очистки конфигураций и peer'ов
-Использование: python3 cleanup_configs.py [--all | --user USER_ID | --config CONFIG_ID]
+Использование: python3 src/tools/cleanup_configs.py [--all | --user USER_ID | --config CONFIG_ID]
 """
 import asyncio
 import sys
 import argparse
 import aiosqlite
+from pathlib import Path
 
-sys.path.insert(0, '/opt/AmneziaBot')
+# Добавляем корень проекта в путь
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.database.repository import ConfigRepository, UserRepository
 from src.database.models import db
