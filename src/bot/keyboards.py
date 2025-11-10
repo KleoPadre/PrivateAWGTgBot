@@ -12,9 +12,7 @@ def get_device_keyboard() -> ReplyKeyboardMarkup:
         ReplyKeyboardMarkup: Клавиатура
     """
     keyboard = [
-        [KeyboardButton("📱 Для телефона")],
-        [KeyboardButton("💻 Для ноутбука")],
-        [KeyboardButton("🌐 Для роутера")]
+        [KeyboardButton("📱 Для телефона"), KeyboardButton("💻 Для ноутбука"), KeyboardButton("🌐 Для роутера")]
     ]
     
     return ReplyKeyboardMarkup(
@@ -32,10 +30,8 @@ def get_admin_keyboard() -> ReplyKeyboardMarkup:
         ReplyKeyboardMarkup: Клавиатура администратора
     """
     keyboard = [
-        [KeyboardButton("📱 Для телефона"), KeyboardButton("💻 Для ноутбука")],
-        [KeyboardButton("🌐 Для роутера")],
-        [KeyboardButton("📊 Статистика"), KeyboardButton("👥 Пользователи")],
-        [KeyboardButton("🔄 Перезагрузить сервер")]
+        [KeyboardButton("📱 Для телефона"), KeyboardButton("💻 Для ноутбука"), KeyboardButton("🌐 Для роутера")],
+        [KeyboardButton("📊 Статистика"), KeyboardButton("👥 Пользователи"), KeyboardButton("🔄 Перезагрузить сервер")]
     ]
     
     return ReplyKeyboardMarkup(
