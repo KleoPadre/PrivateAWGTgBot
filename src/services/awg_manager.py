@@ -170,12 +170,11 @@ AllowedIPs = {client_ip}/32
                 logger.warning("Не удалось распарсить clientsTable, создаем новый")
                 clients = []
         
-        # Добавляем нового клиента
+        # Добавляем нового клиента (формат как в AmneziaVPN приложении)
         from datetime import datetime
         new_client = {
             "clientId": client_public_key,
             "userData": {
-                "allowedIps": f"{client_ip}/32",
                 "clientName": client_name,
                 "creationDate": datetime.now().strftime("%a %b %d %H:%M:%S %Y")
             }
@@ -184,14 +183,25 @@ AllowedIPs = {client_ip}/32
         
         # Записываем обратно
         clients_json_str = json.dumps(clients, indent=4, ensure_ascii=False)
-        # Экранируем кавычки для shell
-        clients_json_escaped = clients_json_str.replace('"', '\\"').replace('\n', '\\n')
         
-        write_cmd = f"docker exec {self.container} sh -c 'echo \"{clients_json_escaped}\" > {self.config_path}/clientsTable'"
-        stdout, stderr, code = await self._execute_command(write_cmd)
+        # Записываем через временный файл для атомарной операции
+        import tempfile
+        import os
+        temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json')
+        temp_file.write(clients_json_str)
+        temp_file.close()
+        
+        # Копируем файл в контейнер
+        copy_cmd = f"docker cp {temp_file.name} {self.container}:{self.config_path}/clientsTable"
+        stdout, stderr, code = await self._execute_command(copy_cmd)
+        
+        # Удаляем временный файл
+        os.unlink(temp_file.name)
         
         if code != 0:
             logger.error(f"Ошибка обновления clientsTable: {stderr}")
+        else:
+            logger.info(f"clientsTable обновлен: добавлен {client_name}")
     
     async def _apply_config_changes(self) -> None:
         """Применение изменений конфигурации WireGuard"""
