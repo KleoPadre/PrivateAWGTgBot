@@ -2,7 +2,7 @@
 
 Telegram бот для автоматической выдачи конфигурационных файлов AmneziaWG пользователям.
 
-<img width="383" height="482" alt="SCR-20251111-ioie" src="https://github.com/user-attachments/assets/7fd7bd80-0289-449c-b4e9-3afb3b473963" />
+<img width="789" height="964" alt="SCR-20251111-ires" src="https://github.com/user-attachments/assets/8bef2a5b-1e3e-425a-85ee-3f5af3af0126" />
 
 
 ## Описание
